@@ -151,3 +151,65 @@ resource "aws_lambda_permission" "allow_apigw_invoke_add_expense" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.http_api.execution_arn}/*/*"
 }
+
+resource "aws_lambda_function" "get_user" {
+  function_name    = "get_user"
+  filename         = "${path.module}/../get_user.zip"
+  source_code_hash = filebase64sha256("${path.module}/../get_user.zip")
+  runtime          = "python3.11"
+  handler          = "handler.lambda_handler"
+  role             = aws_iam_role.lambda_exec_role.arn
+}
+
+resource "aws_apigatewayv2_integration" "get_user_integration" {
+  api_id                = aws_apigatewayv2_api.http_api.id
+  integration_type      = "AWS_PROXY"
+  integration_uri       = aws_lambda_function.get_user.invoke_arn
+  integration_method    = "POST"
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "get_user_route" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "GET /users/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.get_user_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_apigw_invoke_get_user" {
+  statement_id  = "AllowInvokeGetUser"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_user.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.http_api.execution_arn}/*/*"
+}
+
+resource "aws_lambda_function" "get_expenses_by_user" {
+  function_name    = "get_expenses_by_user"
+  filename         = "${path.module}/../get_expenses_by_user.zip"
+  source_code_hash = filebase64sha256("${path.module}/../get_expenses_by_user.zip")
+  runtime          = "python3.11"
+  handler          = "handler.lambda_handler"
+  role             = aws_iam_role.lambda_exec_role.arn
+}
+
+resource "aws_apigatewayv2_integration" "get_expenses_by_user_integration" {
+  api_id                = aws_apigatewayv2_api.http_api.id
+  integration_type      = "AWS_PROXY"
+  integration_uri       = aws_lambda_function.get_expenses_by_user.invoke_arn
+  integration_method    = "POST"
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "get_expenses_by_user_route" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "GET /expenses/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.get_expenses_by_user_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_apigw_invoke_get_expenses_by_user" {
+  statement_id  = "AllowInvokeGetExpensesByUser"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_expenses_by_user.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.http_api.execution_arn}/*/*"
+}
